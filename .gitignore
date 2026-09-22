@@ -1,0 +1,5 @@
+# Dependency trees, if a checker is ever run from this directory.
+node_modules/
+
+# Local scratch output.
+*.log
