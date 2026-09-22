@@ -55,6 +55,39 @@ node verify-preset.cjs
 脚本自带一个针对本文件子集的最小 YAML 读取器，**不依赖任何 npm 包**，所以在没有
 `node_modules` 的目录里也能跑。
 
+## 发布到 GitHub
+
+本目录已是一个带历史的 git 仓库（分支 `master`）。推送到 `https://github.com/<user>/dsh`：
+
+```powershell
+# 1) 先在 GitHub 上建一个空仓库（不要勾选 README/LICENSE，否则首推会冲突）
+#    需要凭据；若本机可访问 GitHub 网页，也可直接在网页建。
+
+# 2) 配置 remote 并推送
+cd C:\Users\dream\dsh-verify-preset
+git remote add origin https://github.com/<user>/dsh.git
+git push -u origin master
+```
+
+首次推送会触发 Git Credential Manager 的登录（该凭据助手已随 MinGit 提供，
+`credential.helper = manager` 也已配置）。**GitHub 已不接受密码认证**，需要用
+PAT 或浏览器登录流程。
+
+### 本机无法直连 GitHub 时的替代路径
+
+若本机到 `github.com` 不通（本机实测过连续超时），可以在**任意能上网的机器**上用
+随附的 bundle 还原整个仓库，再从那台机器推送：
+
+```bash
+git clone dsh-verify-preset.bundle dsh
+cd dsh
+git remote set-url origin https://github.com/<user>/dsh.git
+git push -u origin master
+```
+
+bundle 含完整历史（`git bundle verify` 报 `complete history`）。这个路径**不需要**
+本机有 GitHub 凭据，也不需要本机能访问 GitHub。
+
 ## 目录内容
 
 ```
