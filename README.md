@@ -55,38 +55,37 @@ node verify-preset.cjs
 脚本自带一个针对本文件子集的最小 YAML 读取器，**不依赖任何 npm 包**，所以在没有
 `node_modules` 的目录里也能跑。
 
-## 发布到 GitHub
+## 获取与发布
 
-本目录已是一个带历史的 git 仓库（分支 `master`）。推送到 `https://github.com/<user>/dsh`：
-
-```powershell
-# 1) 先在 GitHub 上建一个空仓库（不要勾选 README/LICENSE，否则首推会冲突）
-#    需要凭据；若本机可访问 GitHub 网页，也可直接在网页建。
-
-# 2) 配置 remote 并推送
-cd C:\Users\dream\dsh-verify-preset
-git remote add origin https://github.com/<user>/dsh.git
-git push -u origin master
-```
-
-首次推送会触发 Git Credential Manager 的登录（该凭据助手已随 MinGit 提供，
-`credential.helper = manager` 也已配置）。**GitHub 已不接受密码认证**，需要用
-PAT 或浏览器登录流程。
-
-### 本机无法直连 GitHub 时的替代路径
-
-若本机到 `github.com` 不通（本机实测过连续超时），可以在**任意能上网的机器**上用
-随附的 bundle 还原整个仓库，再从那台机器推送：
+### 获取
 
 ```bash
-git clone dsh-verify-preset.bundle dsh
+git clone https://github.com/dreamkss/dsh.git
 cd dsh
-git remote set-url origin https://github.com/<user>/dsh.git
+```
+
+仓库是公开的，无需凭据。
+
+### 发布你的改动
+
+本仓库的 `origin` 已指向 `https://github.com/dreamkss/dsh.git`，直接推即可：
+
+```bash
+git add -A
+git commit -m "your message"
+git push
+```
+
+**推送到 fork 或你自己的仓库**时，改成自己的地址：
+
+```bash
+git remote set-url origin https://github.com/<your-user>/<your-repo>.git
 git push -u origin master
 ```
 
-bundle 含完整历史（`git bundle verify` 报 `complete history`）。这个路径**不需要**
-本机有 GitHub 凭据，也不需要本机能访问 GitHub。
+推送需要凭据。Git Credential Manager 随 MinGit 一同提供，且
+`credential.helper = manager` 已配置，首次推送会走登录流程。**GitHub 已不接受
+密码认证**，需要 PAT 或浏览器登录。
 
 ## 目录内容
 
@@ -103,10 +102,15 @@ verify-preset.cjs    自包含校验脚本
 
 - **只在一台机器上验证过**：ASUS TUF FA608UM / Windows 11 25H2 / DSH 0.1.5-rc.2
   （npx 安装）。组合文件引用的是发行版包名，跨版本可能失配。
-- **挂载校验通过，但未在真实会话中确认工具列表**。`standingKeyFor` 证明它能挂载，
-  不证明它产出的 agent 符合预期。见 [`docs/导入方法.md`](docs/导入方法.md) 的
-  「验证状态」。
+- **两个验证层已完成，第三层未做**：
+  1. ✅ 组合文件正确性（`verify-preset.cjs`，可本地复跑）
+  2. ✅ 挂载校验 —— 在**独立 harness 进程**里调用 `agentPresets.standingKeyFor('verified')`
+     正常返回。它真实组合 preset 的插件子树（与会话启动相同，只是不含 agent），
+     失败会以四类之一拒绝。
+  3. ❌ **未在真实会话中确认工具列表**。前两层都不证明该 composition 产出的 agent
+     符合预期。详见 [`docs/导入方法.md`](docs/导入方法.md) 的「验证状态」。
 - **不增加工具**。它只改 persona 文本，能力集与 `standard` 完全一致。
+- **思考模式相关的行为差异**：本 preset 只约束报告纪律，不改变模型的推理行为。
 
 ## 许可与来源
 

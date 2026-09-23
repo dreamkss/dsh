@@ -2,8 +2,8 @@
 // `standard` preset in exactly one field, and that the YAML folded scalar
 // resolves to the intended paragraph.
 //
-// The `standard` source is located through the DSH install, so the comparison
-// works from any checkout of this project. Override with DSH_INSTALL.
+// The `standard` source is discovered from the local DSH install, so the script
+// works on any machine with dsh installed. Override with DSH_INSTALL.
 //
 // Uses a hand-written reader for exactly the subset this file needs (a sequence
 // of maps, one nested map, one folded block scalar) instead of pulling a YAML
@@ -13,15 +13,57 @@ const fs = require('fs');
 const path = require('path');
 
 const presetDir = path.join(__dirname, 'preset');
-const install = process.env.DSH_INSTALL
-  || 'C:\\Users\\dream\\AppData\\Local\\npm-cache\\_npx\\1e7f6d9597241db0\\node_modules\\@deepseek-ai\\dsh-agent-presets';
-const stdFile = path.join(install, 'presets', 'standard', 'agent.cordis.yml');
 
-if (!fs.existsSync(stdFile)) {
-  console.error('Cannot find the shipped standard preset at:\n  ' + stdFile);
-  console.error('Set DSH_INSTALL to the @deepseek-ai/dsh-agent-presets directory.');
+// Resolve the shipped `standard` preset to diff against. Order:
+//   1. DSH_INSTALL, pointing at the @deepseek-ai/dsh-agent-presets directory
+//   2. <dshHome>/profiles/node_modules
+//   3. an npx cache (<LOCALAPPDATA>/npm-cache/_npx/<hash>/node_modules)
+//   4. a global npm root
+function findStandard() {
+  const sub = path.join('@deepseek-ai', 'dsh-agent-presets');
+  const dshHome = process.env.DSH_HOME
+    || (process.env.USERPROFILE ? path.join(process.env.USERPROFILE, '.dsh') : '');
+  const roots = [
+    process.env.DSH_INSTALL,
+    dshHome ? path.join(dshHome, 'profiles', 'node_modules') : null,
+    process.env.LOCALAPPDATA ? path.join(process.env.LOCALAPPDATA, 'npm-cache', '_npx') : null,
+    process.env.APPDATA ? path.join(process.env.APPDATA, 'npm', 'node_modules') : null,
+    process.env.ProgramFiles ? path.join(process.env.ProgramFiles, 'nodejs', 'node_modules') : null,
+  ].filter(Boolean);
+
+  const candidates = [];
+  for (const root of roots) {
+    try {
+      if (!fs.existsSync(root)) continue;
+      // Direct hit: root/@deepseek-ai/dsh-agent-presets
+      const direct = path.join(root, sub);
+      if (fs.existsSync(path.join(direct, 'presets'))) { candidates.push(direct); continue; }
+      // One level of nesting, e.g. _npx/<hash>/node_modules/@deepseek-ai/...
+      for (const entry of fs.readdirSync(root)) {
+        const nested = path.join(root, entry, 'node_modules', sub);
+        if (fs.existsSync(path.join(nested, 'presets'))) candidates.push(nested);
+      }
+    } catch {
+      // unreadable root: try the next one
+    }
+  }
+
+  for (const c of candidates) {
+    const file = path.join(c, 'presets', 'standard', 'agent.cordis.yml');
+    if (fs.existsSync(file)) return file;
+  }
+  return null;
+}
+
+const stdFile = findStandard();
+if (!stdFile) {
+  console.error('Cannot locate the shipped `standard` preset to diff against.');
+  console.error('Set DSH_INSTALL to the @deepseek-ai/dsh-agent-presets directory, e.g.');
+  console.error('  $env:DSH_INSTALL = "...\\node_modules\\@deepseek-ai\\dsh-agent-presets"');
   process.exit(2);
 }
+console.log('baseline: ' + stdFile);
+
 
 let failures = 0;
 function check(label, ok, detail) {
